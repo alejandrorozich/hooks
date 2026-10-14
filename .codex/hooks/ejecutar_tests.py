@@ -7,45 +7,46 @@ Si pasan  → JSON con "additionalContext": el modelo sabe que las pruebas pasar
 import json
 import os
 import re
-import subprocess
 import sys
+from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
 
 datos = json.loads(sys.stdin.buffer.read().decode("utf-8"))
 parche = datos.get("tool_input", {}).get("command", "")
-rutas = re.findall(r"^\*\*\* (?:Add|Update) File: (.+)$", parche, re.MULTILINE)
+rutas = [r.strip() for r in re.findall(r"^\*\*\* (?:Add|Update) File: (.+)$", parche, re.MULTILINE)]
 
-if not any(r.strip().endswith(".py") for r in rutas):
+if not any(r.endswith(".py") for r in rutas):
     sys.exit(0)  # No se tocó código Python: no hay nada que probar
 
-# Codex ejecuta el hook en la carpeta de la sesión (C:\UPB\hooks)
-proyecto = os.path.join(datos.get("cwd") or os.getcwd(), "proyecto-demo")
-resultado = subprocess.run(
-    [sys.executable, "-m", "unittest", "discover", "-s", "tests"],
-    cwd=proyecto,
-    capture_output=True,
-    text=True,
-    encoding="utf-8",
-    timeout=50,
-)
-salida = resultado.stderr.strip()  # unittest escribe su reporte en stderr
+sys.dont_write_bytecode = True  # evita crear hooks/__pycache__
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "hooks"))
+from proyectos import ejecutar_pruebas, proyectos_de
 
-if resultado.returncode != 0:
+# Codex ejecuta el hook en la carpeta de la sesión (C:\UPB\hooks)
+raiz = datos.get("cwd") or os.getcwd()
+fallos, resumenes = [], []
+for proyecto in proyectos_de(rutas):
+    ok, salida = ejecutar_pruebas(proyecto, raiz)
+    total = next((l for l in salida.splitlines() if l.startswith("Ran ")), "")
+    resumenes.append(f"{proyecto}: {total}")
+    if not ok:
+        fallos.append(f"── {proyecto} ──\n{salida[-6000:]}")
+
+if fallos:
     print(
         "❌ El hook ejecutó las pruebas después de tu cambio y FALLARON.\n"
         "Revisa el error y corrige el código (las pruebas no se pueden modificar):\n\n"
-        + salida[-3000:],
+        + "\n\n".join(fallos),
         file=sys.stderr,
     )
     sys.exit(2)
 
-total = next((l for l in salida.splitlines() if l.startswith("Ran ")), "")
 print(json.dumps({
     "hookSpecificOutput": {
         "hookEventName": "PostToolUse",
-        "additionalContext": f"✅ Hook de pruebas: {total} → OK",
+        "additionalContext": f"✅ Hook de pruebas: {' · '.join(resumenes)} → OK",
     }
 }, ensure_ascii=False))
 sys.exit(0)

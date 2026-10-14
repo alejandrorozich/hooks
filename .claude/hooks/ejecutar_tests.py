@@ -6,8 +6,8 @@ Si pasan  → exit 0 + JSON con "systemMessage": el usuario ve un aviso verde.
 """
 import json
 import os
-import subprocess
 import sys
+from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
@@ -18,29 +18,29 @@ ruta = datos.get("tool_input", {}).get("file_path", "")
 if not ruta.endswith(".py"):
     sys.exit(0)  # No es código Python: no hay nada que probar
 
-proyecto = os.path.join(os.environ.get("CLAUDE_PROJECT_DIR", "."), "proyecto-demo")
-resultado = subprocess.run(
-    [sys.executable, "-m", "unittest", "discover", "-s", "tests"],
-    cwd=proyecto,
-    capture_output=True,
-    text=True,
-    encoding="utf-8",
-    timeout=50,
-)
-salida = resultado.stderr.strip()  # unittest escribe su reporte en stderr
-resumen = salida.splitlines()[-1] if salida else ""
+sys.dont_write_bytecode = True  # evita crear hooks/__pycache__
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "hooks"))
+from proyectos import ejecutar_pruebas, proyectos_de
 
-if resultado.returncode != 0:
+raiz = os.environ.get("CLAUDE_PROJECT_DIR", ".")
+fallos, resumenes = [], []
+for proyecto in proyectos_de([ruta]):
+    ok, salida = ejecutar_pruebas(proyecto, raiz)
+    total = next((l for l in salida.splitlines() if l.startswith("Ran ")), "")
+    resumenes.append(f"{proyecto}: {total}")
+    if not ok:
+        fallos.append(f"── {proyecto} ──\n{salida[-6000:]}")
+
+if fallos:
     print(
         "❌ El hook ejecutó las pruebas después de tu cambio y FALLARON.\n"
         "Revisa el error y corrige el código (las pruebas no se pueden modificar):\n\n"
-        + salida[-3000:],
+        + "\n\n".join(fallos),
         file=sys.stderr,
     )
     sys.exit(2)
 
-total = next((l for l in salida.splitlines() if l.startswith("Ran ")), "")
-print(json.dumps({"systemMessage": f"✅ Hook de pruebas: {total} → {resumen}"}, ensure_ascii=False))
+print(json.dumps({"systemMessage": f"✅ Hook de pruebas: {' · '.join(resumenes)} → OK"}, ensure_ascii=False))
 sys.exit(0)
 
 # jhvhgvhgdjcaskjXK

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login UPB</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="tarjeta">
+    <section id="vista-acceso">
+      <h1>Bienvenido</h1>
+      <div class="pestanas" role="tablist">
+        <button type="button" class="pestana activa" data-vista="login" role="tab">Iniciar sesión</button>
+        <button type="button" class="pestana" data-vista="registro" role="tab">Crear cuenta</button>
+      </div>
+
+      <form id="form-login" novalidate>
+        <label>Email <input name="email" type="email" autocomplete="email" required></label>
+        <label>Contraseña <input name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Entrar</button>
+      </form>
+
+      <form id="form-registro" hidden novalidate>
+        <label>Nombre <input name="nombre" autocomplete="name" required></label>
+        <label>Email <input name="email" type="email" autocomplete="email" required></label>
+        <label>Contraseña <input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+        <small>Mínimo 8 caracteres.</small>
+        <button type="submit">Crear cuenta</button>
+      </form>
+    </section>
+
+    <section id="vista-perfil" hidden>
+      <h1>Hola, <span id="perfil-nombre"></span></h1>
+      <p>Sesión iniciada como <strong id="perfil-email"></strong>.</p>
+      <button type="button" id="btn-logout" class="secundario">Cerrar sesión</button>
+    </section>
+
+    <p id="mensaje" role="status" aria-live="polite"></p>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

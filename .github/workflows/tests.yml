@@ -10,10 +10,15 @@ permissions:
 
 jobs:
   tests:
+    name: Pruebas (${{ matrix.proyecto }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false  # si un proyecto falla, el otro igual se prueba
+      matrix:
+        proyecto: [proyecto-demo, proyecto-login]
     defaults:
       run:
-        working-directory: proyecto-demo
+        working-directory: ${{ matrix.proyecto }}
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v6
@@ -23,3 +28,16 @@ jobs:
           python-version: '3.14'
       - name: Ejecutar pruebas
         run: python -B -m unittest discover -s tests -v
+
+  seguridad:
+    name: Seguridad (proyecto-login)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v6
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Revisar reglas de seguridad del hook
+        run: python -B hooks/seguridad.py proyecto-login

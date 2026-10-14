@@ -36,6 +36,13 @@
             "commandWindows": "python .codex/hooks/ejecutar_tests.py",
             "timeout": 60,
             "statusMessage": "Hook: ejecutando pruebas..."
+          },
+          {
+            "type": "command",
+            "command": "python3 .codex/hooks/revisar_seguridad.py",
+            "commandWindows": "python .codex/hooks/revisar_seguridad.py",
+            "timeout": 10,
+            "statusMessage": "Hook: revisando seguridad del login..."
           }
         ]
       },

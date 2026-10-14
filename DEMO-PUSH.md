@@ -27,5 +27,9 @@ scripts o formas de invocar Git, y verifica el arbol de trabajo de esta demo,
 no el contenido de cada commit pendiente. Usa comandos separados para editar,
 probar, confirmar y subir.
 
+El segundo proyecto, `proyecto-login`, sigue el mismo flujo con 5 pruebas en rojo
+(ver `proyecto-login/README.md`). Actions lo prueba en paralelo y el hook bloquea
+el push hasta que ambos proyectos esten en verde.
+
 `reiniciar-demo.ps1` restaura el codigo correcto; no lo ejecutes antes de
 mostrar el fallo intencional en Actions.

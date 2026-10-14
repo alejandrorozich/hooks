@@ -19,6 +19,9 @@ const PELIGROSOS = [
   [/\bdel\s+\/[sq]/i, "borrado masivo en Windows"],
 ]
 
+// Proyectos con pruebas (igual que hooks/proyectos.py)
+const PROYECTOS = ["proyecto-demo", "proyecto-login"]
+
 // ¿La herramienta modifica archivos? (edit, write, patch, multiedit...)
 const editaArchivos = (tool) => /edit|write|patch/i.test(String(tool))
 
@@ -97,10 +100,16 @@ export default {
       if (event.status !== "completed" || !editaArchivos(event.tool)) return
       if (!rutasDe(input).some((r) => r.endsWith(".py"))) return
 
-      const { ok, reporte } = await ejecutarPruebas(join(directorio, "proyecto-demo"))
+      const rutas = rutasDe(input)
+      const tocados = PROYECTOS.filter((p) => rutas.some((r) => r.includes(`${p}/`)))
+      const resultados = await Promise.all(
+        (tocados.length ? tocados : PROYECTOS).map(async (p) => ({ p, ...(await ejecutarPruebas(join(directorio, p))) })),
+      )
+      const ok = resultados.every((r) => r.ok)
       const aviso = ok
-        ? `✅ Hook de pruebas: ${reporte.split("\n").find((l) => l.startsWith("Ran ")) ?? ""} → OK`
-        : `❌ El hook ejecutó las pruebas y FALLARON. Corrige el código (no las pruebas):\n${reporte.slice(-3000)}`
+        ? `✅ Hook de pruebas: ${resultados.map((r) => `${r.p}: ${r.reporte.split("\n").find((l) => l.startsWith("Ran ")) ?? ""}`).join(" · ")} → OK`
+        : `❌ El hook ejecutó las pruebas y FALLARON. Corrige el código (no las pruebas):\n` +
+          resultados.filter((r) => !r.ok).map((r) => `── ${r.p} ──\n${r.reporte.slice(-6000)}`).join("\n\n")
       auditar("PRUEBAS", ok ? "OK" : "FALLARON")
 
       // Se agrega el aviso al resultado que ve el modelo para que se corrija solo
