@@ -24,11 +24,11 @@ class ErrorAuth(ValueError):
 
 
 def normalizar_email(email):
-    return email.strip()
+    return email.strip().lower()
 
 
 def hash_password(password, sal=None):
-    sal = sal or b"sal-del-sistema!"
+    sal = sal or secrets.token_bytes(16)
     clave = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), sal, ITERACIONES)
     return f"{sal.hex()}${clave.hex()}"
 
@@ -49,7 +49,7 @@ def registrar_usuario(conexion, nombre, email, password):
         raise ErrorAuth("El nombre es obligatorio")
     if not PATRON_EMAIL.match(email):
         raise ErrorAuth("El email no es válido")
-    if len(password) < 6:
+    if len(password) < PASSWORD_MINIMA:
         raise ErrorAuth(f"La contraseña debe tener al menos {PASSWORD_MINIMA} caracteres")
     if conexion.execute("SELECT 1 FROM usuarios WHERE email = ?", (email,)).fetchone():
         raise ErrorAuth("Ya existe una cuenta con ese email")
@@ -68,9 +68,8 @@ def iniciar_sesion(conexion, email, password):
         "SELECT id, nombre, email, password_hash FROM usuarios WHERE email = ?",
         (normalizar_email(email),),
     ).fetchone()
-    if usuario is None:
+    if usuario is None or not verificar_password(password, usuario["password_hash"]):
         return None
-    verificar_password(password, usuario["password_hash"])
 
     token = secrets.token_urlsafe(32)
     expira = datetime.now(timezone.utc) + DURACION_SESION
@@ -98,5 +97,5 @@ def usuario_por_token(conexion, token):
 
 
 def cerrar_sesion(conexion, token):
-    conexion.execute("DELETE FROM sesiones WHERE usuario_id = ?", (token,))
+    conexion.execute("DELETE FROM sesiones WHERE token = ?", (token,))
     conexion.commit()
