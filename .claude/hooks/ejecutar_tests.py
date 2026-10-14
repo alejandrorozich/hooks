@@ -43,4 +43,5 @@ total = next((l for l in salida.splitlines() if l.startswith("Ran ")), "")
 print(json.dumps({"systemMessage": f"✅ Hook de pruebas: {total} → {resumen}"}, ensure_ascii=False))
 sys.exit(0)
 
-# jhvhgvhg
+# jhvhgvhgdjcaskjXK
+# jhvhgvhgdjcaskjXKSSWJQSHSJX
