@@ -29,6 +29,7 @@ def estado(nota):
 
 
 def validar_nota(nota):
+    # Una nota es válida si está dentro de la escala 0-100 (ambos inclusive)
     return 0 <= nota <= 100
 
 
