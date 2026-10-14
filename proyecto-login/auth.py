@@ -49,7 +49,7 @@ def registrar_usuario(conexion, nombre, email, password):
         raise ErrorAuth("El nombre es obligatorio")
     if not PATRON_EMAIL.match(email):
         raise ErrorAuth("El email no es válido")
-    if len(password) < PASSWORD_MINIMA:
+    if len(password) < 6:
         raise ErrorAuth(f"La contraseña debe tener al menos {PASSWORD_MINIMA} caracteres")
     if conexion.execute("SELECT 1 FROM usuarios WHERE email = ?", (email,)).fetchone():
         raise ErrorAuth("Ya existe una cuenta con ese email")
